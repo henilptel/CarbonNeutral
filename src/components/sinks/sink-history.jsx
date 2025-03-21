@@ -9,62 +9,65 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, Download, Search } from "lucide-react";
-
-// Mock data - in a real app, this would come from an API
-const generateHistoryData = () => {
-  const projects = [
-    "Eastern Afforestation Project",
-    "Jharkhand Green Belt",
-    "Odisha Mangrove Restoration",
-    "Western Ghats Reforestation",
-    "Himalayan Forest Recovery",
-  ];
-  
-  const locations = [
-    "West Bengal",
-    "Jharkhand",
-    "Odisha",
-    "Maharashtra",
-    "Uttarakhand",
-  ];
-  
-  const species = ["Mixed", "Eucalyptus", "Pine", "Oak", "Teak"];
-  
-  const results = [];
-  
-  for (let i = 0; i < 10; i++) {
-    const projectIndex = Math.floor(Math.random() * projects.length);
-    const date = new Date();
-    date.setDate(date.getDate() - i * 45);
-    const area = Math.floor(Math.random() * 500) + 50;
-    
-    results.push({
-      id: i + 1,
-      projectName: projects[projectIndex],
-      location: locations[projectIndex],
-      treeSpecies: species[Math.floor(Math.random() * species.length)],
-      forestArea: area,
-      annualSequestration: Math.floor(area * (Math.random() * 15 + 10)),
-      date: date.toISOString(),
-    });
-  }
-  
-  return results;
-};
+import { Trash2, Search } from "lucide-react";
+import { sinkService } from "@/services/sinkService";
+import { useToast } from "@/hooks/use-toast";
 
 const SinkHistory = () => {
+  const { toast } = useToast();
+  const [userId, setUserId] = useState(null);
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setHistoryData(generateHistoryData());
+    const storedUserId = localStorage.getItem('userId');
+    if (storedUserId) {
+      setUserId(storedUserId);
+      fetchSinkHistory(storedUserId);
+    } else {
       setLoading(false);
-    }, 1000);
+      toast({
+        title: "Authentication required",
+        description: "Please log in to view sink history",
+        variant: "destructive",
+      });
+    }
   }, []);
+
+  const fetchSinkHistory = async (userId) => {
+    try {
+      const data = await sinkService.getUserSinks(userId);
+      setHistoryData(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch sink history",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await sinkService.delete(id);
+      if (userId) {
+        fetchSinkHistory(userId);
+      }
+      toast({
+        title: "Success",
+        description: "Sink project deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete sink project",
+        variant: "destructive",
+      });
+    }
+  };
   
   const filteredData = historyData.filter(
     (item) =>
@@ -95,10 +98,6 @@ const SinkHistory = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Export All
-        </Button>
       </div>
       
       <div className="rounded-md border">
@@ -109,7 +108,7 @@ const SinkHistory = () => {
               <TableHead>Project Name</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Tree Species</TableHead>
-              <TableHead>Area (ha)</TableHead>
+              <TableHead className="text-right">Area (ha)</TableHead>
               <TableHead className="text-right">Annual Seq. (tCO₂e)</TableHead>
               <TableHead>Date</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -135,11 +134,14 @@ const SinkHistory = () => {
                     })}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                      <Download className="h-4 w-4" />
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleDelete(item.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <span className="sr-only">Delete</span>
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>

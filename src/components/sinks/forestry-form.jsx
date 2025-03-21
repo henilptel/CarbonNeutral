@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { sinkService } from "@/services/sinkService";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +9,15 @@ import { Slider } from "@/components/ui/slider";
 import { Leaf } from "lucide-react";
 
 const ForestryForm = ({ onCalculate }) => {
+  const { toast } = useToast();
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    const storedUserId = localStorage.getItem('userId');
+    if (storedUserId) {
+      setUserId(storedUserId);
+    }
+  }, []);
   const [formData, setFormData] = useState({
     projectName: "",
     location: "",
@@ -33,12 +44,11 @@ const ForestryForm = ({ onCalculate }) => {
     setFormData((prev) => ({ ...prev, [name]: value[0] }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsCalculating(true);
 
-    // Simulate calculation delay
-    setTimeout(() => {
+    try {
       // In a real app, this would be a more complex calculation based on scientific models
       // These are simplified calculations for demonstration
       
@@ -120,6 +130,8 @@ const ForestryForm = ({ onCalculate }) => {
         treeSpecies: formData.treeSpecies,
         treeDensity: formData.treeDensity,
         forestAge: formData.forestAge,
+        soilType: formData.soilType,
+        maintenanceLevel: formData.maintenanceLevel,
         annualSequestration,
         tenYearSequestration,
         thirtyYearSequestration,
@@ -127,9 +139,35 @@ const ForestryForm = ({ onCalculate }) => {
         date: new Date().toISOString(),
       };
       
+      // Save to backend if user is logged in
+      if (userId) {
+        await sinkService.create({
+          userId,
+          ...results
+        });
+        
+        toast({
+          title: "Success",
+          description: "Sink project saved successfully",
+        });
+      } else {
+        toast({
+          title: "Warning",
+          description: "Please log in to save sink projects",
+          variant: "destructive",
+        });
+      }
+      
       onCalculate(results);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.error || "Failed to save sink project",
+        variant: "destructive",
+      });
+    } finally {
       setIsCalculating(false);
-    }, 1500);
+    }
   };
 
   return (
