@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { userService } from "@/services/userService";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,35 +8,49 @@ import { useToast } from "@/hooks/use-toast";
 import { navigateTo } from "@/lib/navigation";
 
 const LoginForm = ({ onClose }) => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  const [isRegistering, setIsRegistering] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // In a real app, this would be an API call
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // Demo login - in production this would check credentials with backend
-      if (email === "demo@example.com" && password === "password") {
+
+    try {
+      if (isRegistering) {
+        // Register new user
+        const result = await userService.register(username, password);
+        toast({
+          title: "Registration successful",
+          description: "Your account has been created. You can now log in.",
+        });
+        // Switch back to login mode
+        setIsRegistering(false);
+      } else {
+        // Log in user
+        const result = await userService.login(username, password);
         toast({
           title: "Login successful",
           description: "Welcome to CarbonNeutral Mines dashboard",
         });
-        // Use our custom navigation utility
+        // Store user info in localStorage
+        localStorage.setItem('userId', result.userId);
+        localStorage.setItem('username', result.username);
+        // Navigate to dashboard
         navigateTo("/dashboard");
-      } else {
-        toast({
-          title: "Login failed",
-          description: "Invalid email or password. Try demo@example.com / password",
-          variant: "destructive",
-        });
       }
-    }, 1000);
+    } catch (error) {
+      toast({
+        title: isRegistering ? "Registration failed" : "Login failed",
+        description: error.response?.data?.error || error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -60,13 +75,13 @@ const LoginForm = ({ onClose }) => {
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="username">Username</Label>
           <Input
-            id="email"
-            type="email"
-            placeholder="name@company.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            id="username"
+            type="text"
+            placeholder="your username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
           />
         </div>
@@ -88,23 +103,22 @@ const LoginForm = ({ onClose }) => {
         </div>
         
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Logging in..." : "Login"}
+          {isLoading ? "Processing..." : isRegistering ? "Register" : "Login"}
         </Button>
       </form>
       
       <div className="mt-6 text-center text-sm">
         <p className="text-muted-foreground">
-          Don't have an account?{" "}
-          <a href="#" className="text-primary hover:underline">
-            Sign up
-          </a>
+          {isRegistering ? "Already have an account?" : "Don't have an account?"}{" "}
+          <button 
+            type="button"
+            className="text-primary hover:underline"
+            onClick={() => setIsRegistering(!isRegistering)}
+          >
+            {isRegistering ? "Login" : "Sign up"}
+          </button>
         </p>
         
-        <div className="mt-4 p-3 bg-muted rounded-md">
-          <p className="font-medium">Demo Credentials</p>
-          <p className="text-muted-foreground">Email: demo@example.com</p>
-          <p className="text-muted-foreground">Password: password</p>
-        </div>
       </div>
     </div>
   );
