@@ -26,7 +26,6 @@ const EmissionForm = ({ onCalculate }) => {
     electricityUsage: "",
     fuelConsumption: "",
     methaneEmissions: "",
-    employeeCount: "",
   });
 
   const [isCalculating, setIsCalculating] = useState(false);
@@ -46,13 +45,13 @@ const EmissionForm = ({ onCalculate }) => {
 
     try {
       // Calculate emissions
-      const coalEmissions = parseFloat(formData.coalProduction) * 2.42;
-      const electricityEmissions = parseFloat(formData.electricityUsage) * 0.82;
-      const fuelEmissions = parseFloat(formData.fuelConsumption) * 2.68;
+      // Emission Factors
+      const coalEmissions = parseFloat(formData.coalProduction) * 26.13;
+      const electricityEmissions = parseFloat(formData.electricityUsage) * 0.716;
+      const fuelEmissions = parseFloat(formData.fuelConsumption) * 2.68;  // Diesel
       const methaneEmissions = parseFloat(formData.methaneEmissions) * 25;
       
       const totalEmissions = coalEmissions + electricityEmissions + fuelEmissions + methaneEmissions;
-      const emissionsPerEmployee = totalEmissions / parseFloat(formData.employeeCount || 1);
       
       const results = {
         mineName: formData.mineName,
@@ -65,17 +64,22 @@ const EmissionForm = ({ onCalculate }) => {
           fuelConsumption: fuelEmissions,
           methaneEmissions: methaneEmissions,
         },
-        emissionsPerEmployee,
         date: new Date().toISOString(),
       };
 
       // Save to backend
       if (userId) {
-        await emissionService.create(
+        await emissionService.create({
           userId,
-          'coal', // type
-          totalEmissions // amount
-        );
+          mineName: formData.mineName,
+          mineLocation: formData.mineLocation,
+          period: formData.period,
+          coalProduction: parseFloat(formData.coalProduction),
+          electricityUsage: parseFloat(formData.electricityUsage),
+          fuelConsumption: parseFloat(formData.fuelConsumption),
+          methaneEmissions: parseFloat(formData.methaneEmissions),
+          totalEmissions
+        });
         
         toast({
           title: "Emission record saved",
@@ -204,21 +208,6 @@ const EmissionForm = ({ onCalculate }) => {
           value={formData.methaneEmissions}
           onChange={handleChange}
           placeholder="0.00"
-          required
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="employeeCount">Number of Employees</Label>
-        <Input
-          id="employeeCount"
-          name="employeeCount"
-          type="number"
-          min="1"
-          step="1"
-          value={formData.employeeCount}
-          onChange={handleChange}
-          placeholder="0"
           required
         />
       </div>

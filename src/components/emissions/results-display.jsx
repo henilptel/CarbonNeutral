@@ -22,7 +22,7 @@ const ResultsDisplay = ({ results }) => {
     );
   }
 
-  const { totalEmissions, breakdown, emissionsPerEmployee, mineName, mineLocation, period, date } = results;
+  const { totalEmissions, breakdown, mineName, mineLocation, period, date } = results;
 
   // Prepare data for pie chart
   const chartData = [
@@ -56,25 +56,13 @@ const ResultsDisplay = ({ results }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-1">Total Emissions</p>
               <p className="text-3xl font-bold">
                 {totalEmissions.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                <span className="text-base font-normal text-muted-foreground ml-1">tCO₂e</span>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">Per Employee</p>
-              <p className="text-3xl font-bold">
-                {emissionsPerEmployee.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                 <span className="text-base font-normal text-muted-foreground ml-1">tCO₂e</span>
               </p>
             </div>

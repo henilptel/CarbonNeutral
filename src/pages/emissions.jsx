@@ -160,10 +160,6 @@ const Emissions = () => {
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" disabled={!calculationResults}>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save
-                      </Button>
-                      <Button variant="outline" size="sm" disabled={!calculationResults}>
                         <Download className="mr-2 h-4 w-4" />
                         Export
                       </Button>

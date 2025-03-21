@@ -19,6 +19,9 @@ const EmissionHistory = () => {
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortConfig, setSortConfig] = useState({ field: 'date', order: 'DESC' });
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   
   useEffect(() => {
     const storedUserId = localStorage.getItem('userId');
@@ -37,7 +40,17 @@ const EmissionHistory = () => {
 
   const fetchEmissions = async (userId) => {
     try {
-      const emissions = await emissionService.getUserEmissions(userId);
+      const queryParams = new URLSearchParams({
+        sortBy: sortConfig.field,
+        sortOrder: sortConfig.order
+      });
+      
+      if (startDate && endDate) {
+        queryParams.append('startDate', startDate);
+        queryParams.append('endDate', endDate);
+      }
+      
+      const emissions = await emissionService.getUserEmissions(userId, queryParams);
       setHistoryData(emissions);
     } catch (error) {
       toast({
@@ -69,11 +82,51 @@ const EmissionHistory = () => {
       });
     }
   };
+
+  const handleExport = () => {
+    try {
+      // Convert data to CSV format
+      const headers = ["Mine Name", "Location", "Period", "Coal Production", "Total Emissions (tCO₂e)"];
+      const csvData = [
+        headers.join(","),
+        ...historyData.map(item => [
+          item.mineName,
+          item.mineLocation,
+          item.period,
+          item.coalProduction,
+          item.totalEmissions
+        ].join(","))
+      ].join("\n");
+
+      // Create and download file
+      const blob = new Blob([csvData], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "emission-history.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: "Export completed successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export data",
+        variant: "destructive",
+      });
+    }
+  };
   
   const filteredData = historyData.filter(
     (item) =>
-      item.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.amount.toString().includes(searchTerm.toLowerCase())
+      item.mineName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.mineLocation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.totalEmissions?.toString().includes(searchTerm)
   );
   
   if (loading) {
@@ -89,30 +142,100 @@ const EmissionHistory = () => {
   
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by type or amount..."
+            placeholder="Search by mine name or location..."
             className="pl-8"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Export All
-        </Button>
+        <div className="flex gap-2">
+          {/* <input
+            type="date"
+            className="px-3 py-1 border rounded"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <input
+            type="date"
+            className="px-3 py-1 border rounded"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          /> */}
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" />
+            Export All
+          </Button>
+        </div>
       </div>
       
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="text-right">Emissions (tCO₂e)</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => {
+                  setSortConfig(prev => ({
+                    field: 'mine_name',
+                    order: prev.field === 'mine_name' && prev.order === 'ASC' ? 'DESC' : 'ASC'
+                  }));
+                  if (userId) fetchEmissions(userId);
+                }}
+              >
+                Mine Name {sortConfig.field === 'mine_name' && (sortConfig.order === 'ASC' ? '↑' : '↓')}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => {
+                  setSortConfig(prev => ({
+                    field: 'mine_location',
+                    order: prev.field === 'mine_location' && prev.order === 'ASC' ? 'DESC' : 'ASC'
+                  }));
+                  if (userId) fetchEmissions(userId);
+                }}
+              >
+                Location {sortConfig.field === 'mine_location' && (sortConfig.order === 'ASC' ? '↑' : '↓')}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => {
+                  setSortConfig(prev => ({
+                    field: 'period',
+                    order: prev.field === 'period' && prev.order === 'ASC' ? 'DESC' : 'ASC'
+                  }));
+                  if (userId) fetchEmissions(userId);
+                }}
+              >
+                Period {sortConfig.field === 'period' && (sortConfig.order === 'ASC' ? '↑' : '↓')}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-muted/50 text-right"
+                onClick={() => {
+                  setSortConfig(prev => ({
+                    field: 'coal_production',
+                    order: prev.field === 'coal_production' && prev.order === 'ASC' ? 'DESC' : 'ASC'
+                  }));
+                  if (userId) fetchEmissions(userId);
+                }}
+              >
+                Coal Production(tons) {sortConfig.field === 'coal_production' && (sortConfig.order === 'ASC' ? '↑' : '↓')}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-muted/50 text-right"
+                onClick={() => {
+                  setSortConfig(prev => ({
+                    field: 'total_emissions',
+                    order: prev.field === 'total_emissions' && prev.order === 'ASC' ? 'DESC' : 'ASC'
+                  }));
+                  if (userId) fetchEmissions(userId);
+                }}
+              >
+                Total Emissions (tCO₂e) {sortConfig.field === 'total_emissions' && (sortConfig.order === 'ASC' ? '↑' : '↓')}
+              </TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -120,17 +243,14 @@ const EmissionHistory = () => {
             {filteredData.length > 0 ? (
               filteredData.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.id}</TableCell>
-                  <TableCell>{item.type}</TableCell>
+                  <TableCell className="font-medium">{item.mineName}</TableCell>
+                  <TableCell>{item.mineLocation}</TableCell>
+                  <TableCell>{item.period}</TableCell>
                   <TableCell className="text-right">
-                    {item.amount.toLocaleString()}
+                    {item.coalProduction?.toLocaleString() ?? 'N/A'}
                   </TableCell>
-                  <TableCell>
-                    {new Date(item.date).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
+                  <TableCell className="text-right">
+                    {item.totalEmissions?.toLocaleString() ?? 'N/A'}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button 
@@ -147,7 +267,7 @@ const EmissionHistory = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={6} className="text-center py-8">
                   <p className="text-muted-foreground">No results found</p>
                 </TableCell>
               </TableRow>

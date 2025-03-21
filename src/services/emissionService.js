@@ -2,9 +2,19 @@ import api from './api';
 
 export const emissionService = {
   // Create a new emission record
-  create: async (userId, type, amount) => {
+  create: async (data) => {
     try {
-      const response = await api.post('/emissions', { userId, type, amount });
+      const response = await api.post('/emissions', {
+        userId: data.userId,
+        mineName: data.mineName,
+        mineLocation: data.mineLocation,
+        period: data.period,
+        coalProduction: data.coalProduction,
+        electricityUsage: data.electricityUsage,
+        fuelConsumption: data.fuelConsumption,
+        methaneEmissions: data.methaneEmissions,
+        totalEmissions: data.totalEmissions
+      });
       return response.data;
     } catch (error) {
       console.error('Create emission failed:', error.response?.data?.error || error.message);
@@ -13,15 +23,9 @@ export const emissionService = {
   },
 
   // Get emissions for a user
-  getUserEmissions: async (userId, startDate, endDate) => {
+  getUserEmissions: async (userId, queryParams) => {
     try {
-      const params = {};
-      if (startDate && endDate) {
-        params.startDate = startDate;
-        params.endDate = endDate;
-      }
-      
-      const response = await api.get(`/emissions/user/${userId}`, { params });
+      const response = await api.get(`/emissions/user/${userId}?${queryParams.toString()}`);
       return response.data;
     } catch (error) {
       console.error('Get emissions failed:', error.response?.data?.error || error.message);
