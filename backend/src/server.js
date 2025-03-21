@@ -3,6 +3,7 @@ import cors from 'cors';
 import './config/database.js';
 import userRoutes from './routes/userRoutes.js';
 import emissionRoutes from './routes/emissionRoutes.js';
+import sinkRoutes from './routes/sinkRoutes.js';
 
 const app = express();
 const port = 3001;
@@ -14,6 +15,7 @@ app.use(express.json());
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/emissions', emissionRoutes);
+app.use('/api/sinks', sinkRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -37,4 +39,8 @@ app.listen(port, () => {
   console.log('  - GET /api/emissions/user/:userId: Get user\'s emissions');
   console.log('  - PUT /api/emissions/:id: Update emission record');
   console.log('  - DELETE /api/emissions/:id: Delete emission record');
+  console.log('  - POST /api/sinks: Create sink project');
+  console.log('  - GET /api/sinks/user/:userId: Get user\'s sink projects');
+  console.log('  - PUT /api/sinks/:id: Update sink project');
+  console.log('  - DELETE /api/sinks/:id: Delete sink project');
 });
