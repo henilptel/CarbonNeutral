@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { emissionService } from "@/services/emissionService";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table,
   TableBody,
@@ -9,65 +11,69 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, Download, Search } from "lucide-react";
-
-// Mock data - in a real app, this would come from an API
-const generateHistoryData = () => {
-  const mines = [
-    "Jharia Coal Mine",
-    "Singrauli Coal Mine",
-    "Talcher Coal Mine",
-    "Korba Coal Mine",
-    "Raniganj Coal Mine",
-  ];
-  
-  const locations = [
-    "Jharkhand",
-    "Madhya Pradesh",
-    "Odisha",
-    "Chhattisgarh",
-    "West Bengal",
-  ];
-  
-  const periods = ["Monthly", "Quarterly", "Yearly"];
-  
-  const results = [];
-  
-  for (let i = 0; i < 10; i++) {
-    const mineIndex = Math.floor(Math.random() * mines.length);
-    const date = new Date();
-    date.setDate(date.getDate() - i * 30);
-    
-    results.push({
-      id: i + 1,
-      mineName: mines[mineIndex],
-      mineLocation: locations[mineIndex],
-      period: periods[Math.floor(Math.random() * periods.length)],
-      totalEmissions: Math.floor(Math.random() * 100000) + 50000,
-      date: date.toISOString(),
-    });
-  }
-  
-  return results;
-};
+import { Trash2, Download, Search } from "lucide-react";
 
 const EmissionHistory = () => {
+  const { toast } = useToast();
+  const [userId, setUserId] = useState(null);
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setHistoryData(generateHistoryData());
+    const storedUserId = localStorage.getItem('userId');
+    if (storedUserId) {
+      setUserId(storedUserId);
+      fetchEmissions(storedUserId);
+    } else {
       setLoading(false);
-    }, 1000);
+      toast({
+        title: "Authentication required",
+        description: "Please log in to view emission history",
+        variant: "destructive",
+      });
+    }
   }, []);
+
+  const fetchEmissions = async (userId) => {
+    try {
+      const emissions = await emissionService.getUserEmissions(userId);
+      setHistoryData(emissions);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch emission history",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await emissionService.delete(id);
+      // Refresh the list
+      if (userId) {
+        fetchEmissions(userId);
+      }
+      toast({
+        title: "Success",
+        description: "Emission record deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete emission record",
+        variant: "destructive",
+      });
+    }
+  };
   
   const filteredData = historyData.filter(
     (item) =>
-      item.mineName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.mineLocation.toLowerCase().includes(searchTerm.toLowerCase())
+      item.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.amount.toString().includes(searchTerm.toLowerCase())
   );
   
   if (loading) {
@@ -87,7 +93,7 @@ const EmissionHistory = () => {
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by mine name or location..."
+            placeholder="Search by type or amount..."
             className="pl-8"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -104,10 +110,8 @@ const EmissionHistory = () => {
           <TableHeader>
             <TableRow>
               <TableHead>ID</TableHead>
-              <TableHead>Mine Name</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Period</TableHead>
-              <TableHead className="text-right">Total Emissions (tCO₂e)</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead className="text-right">Emissions (tCO₂e)</TableHead>
               <TableHead>Date</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -117,11 +121,9 @@ const EmissionHistory = () => {
               filteredData.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.id}</TableCell>
-                  <TableCell>{item.mineName}</TableCell>
-                  <TableCell>{item.mineLocation}</TableCell>
-                  <TableCell>{item.period}</TableCell>
+                  <TableCell>{item.type}</TableCell>
                   <TableCell className="text-right">
-                    {item.totalEmissions.toLocaleString()}
+                    {item.amount.toLocaleString()}
                   </TableCell>
                   <TableCell>
                     {new Date(item.date).toLocaleDateString("en-US", {
@@ -131,11 +133,14 @@ const EmissionHistory = () => {
                     })}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                      <Download className="h-4 w-4" />
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleDelete(item.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <span className="sr-only">Delete</span>
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>

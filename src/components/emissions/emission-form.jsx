@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { emissionService } from "@/services/emissionService";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,6 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calculator } from "lucide-react";
 
 const EmissionForm = ({ onCalculate }) => {
+  const { toast } = useToast();
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    // Get userId from localStorage
+    const storedUserId = localStorage.getItem('userId');
+    if (storedUserId) {
+      setUserId(storedUserId);
+    }
+  }, []);
   const [formData, setFormData] = useState({
     mineName: "",
     mineLocation: "",
@@ -28,17 +40,16 @@ const EmissionForm = ({ onCalculate }) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsCalculating(true);
 
-    // Simulate calculation delay
-    setTimeout(() => {
-      // In a real app, this would be a more complex calculation based on emission factors
-      const coalEmissions = parseFloat(formData.coalProduction) * 2.42; // tCO2e per ton of coal
-      const electricityEmissions = parseFloat(formData.electricityUsage) * 0.82; // tCO2e per MWh
-      const fuelEmissions = parseFloat(formData.fuelConsumption) * 2.68; // tCO2e per kiloliter
-      const methaneEmissions = parseFloat(formData.methaneEmissions) * 25; // tCO2e (methane has 25x GWP of CO2)
+    try {
+      // Calculate emissions
+      const coalEmissions = parseFloat(formData.coalProduction) * 2.42;
+      const electricityEmissions = parseFloat(formData.electricityUsage) * 0.82;
+      const fuelEmissions = parseFloat(formData.fuelConsumption) * 2.68;
+      const methaneEmissions = parseFloat(formData.methaneEmissions) * 25;
       
       const totalEmissions = coalEmissions + electricityEmissions + fuelEmissions + methaneEmissions;
       const emissionsPerEmployee = totalEmissions / parseFloat(formData.employeeCount || 1);
@@ -57,10 +68,37 @@ const EmissionForm = ({ onCalculate }) => {
         emissionsPerEmployee,
         date: new Date().toISOString(),
       };
+
+      // Save to backend
+      if (userId) {
+        await emissionService.create(
+          userId,
+          'coal', // type
+          totalEmissions // amount
+        );
+        
+        toast({
+          title: "Emission record saved",
+          description: "Your emission data has been recorded successfully.",
+        });
+      } else {
+        toast({
+          title: "Warning",
+          description: "Please log in to save emission records.",
+          variant: "destructive",
+        });
+      }
       
       onCalculate(results);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.error || "Failed to save emission record",
+        variant: "destructive",
+      });
+    } finally {
       setIsCalculating(false);
-    }, 1500);
+    }
   };
 
   return (
