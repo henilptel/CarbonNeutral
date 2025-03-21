@@ -23,7 +23,7 @@ const Index = () => {
             <Button 
               variant="outline" 
               onClick={() => setShowLogin(!showLogin)}
-              className="border-primary-foreground hover:bg-primary-foreground hover:text-primary"
+              className="border-primary-foreground text-primary hover:bg-primary-foreground hover:text-primary"
             >
               Login
             </Button>
