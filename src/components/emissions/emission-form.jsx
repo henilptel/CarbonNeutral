@@ -44,12 +44,15 @@ const EmissionForm = ({ onCalculate }) => {
     setIsCalculating(true);
 
     try {
-      // Calculate emissions
-      // Emission Factors
-      const coalEmissions = parseFloat(formData.coalProduction) * 26.13;
-      const electricityEmissions = parseFloat(formData.electricityUsage) * 0.716;
-      const fuelEmissions = parseFloat(formData.fuelConsumption) * 2.68;  // Diesel
-      const methaneEmissions = parseFloat(formData.methaneEmissions) * 25;
+      // Calculate emissions using updated emission factors
+      // Coal: 2.42 tCO₂/ton (based on combustion emissions)
+      // Electricity: 0.82 tCO₂/MWh (based on coal-based power generation)
+      // Diesel: 2.68 tCO₂/kL (unchanged)
+      // Methane: 28 times CO₂ warming potential
+      const coalEmissions = parseFloat(formData.coalProduction) * 2.42;
+      const electricityEmissions = parseFloat(formData.electricityUsage) * 0.82;
+      const fuelEmissions = parseFloat(formData.fuelConsumption) * 2.68;
+      const methaneEmissions = parseFloat(formData.methaneEmissions) * 28;
       
       const totalEmissions = coalEmissions + electricityEmissions + fuelEmissions + methaneEmissions;
       
