@@ -77,13 +77,19 @@ const Index = () => {
         </div>
 
         {/* Statistics Section */}
-        <div className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
-            <div key={index} className="bg-card p-6 rounded-lg shadow-md border border-border text-center">
-              <p className="text-3xl md:text-4xl font-bold text-primary">{stat.value}</p>
-              <p className="text-sm text-muted-foreground mt-2">{stat.label}</p>
-            </div>
-          ))}
+        <div className="mt-24 py-12 bg-primary/5 rounded-xl">
+          <h2 className="text-3xl font-bold text-center mb-8">Our Impact</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 container mx-auto px-4">
+            {stats.map((stat, index) => (
+              <div 
+                key={index} 
+                className="bg-card p-6 rounded-lg shadow-md border border-border text-center hover:scale-105 transition-transform"
+              >
+                <p className="text-3xl md:text-4xl font-bold text-primary">{stat.value}</p>
+                <p className="text-sm text-muted-foreground mt-2">{stat.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* How It Works Section */}
@@ -91,12 +97,17 @@ const Index = () => {
           <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {steps.map((step, index) => (
-              <div key={index} className="flex flex-col items-center text-center">
+              <div key={index} className="flex flex-col items-center text-center p-6 bg-card rounded-lg border border-border shadow-md hover:shadow-lg transition-shadow">
                 <div className="h-16 w-16 rounded-full bg-primary flex items-center justify-center mb-4 text-primary-foreground text-2xl font-bold">
                   {index + 1}
                 </div>
-                <h3 className="text-xl font-medium mb-2">{step.title}</h3>
+                <h3 className="text-xl font-bold mb-3">{step.title}</h3>
                 <p className="text-muted-foreground">{step.description}</p>
+                {/* <div className="mt-4">
+                  {index === 0 && <BarChart3 className="h-10 w-10 text-primary/60" />}
+                  {index === 1 && <Settings className="h-10 w-10 text-primary/60" />}
+                  {index === 2 && <Leaf className="h-10 w-10 text-primary/60" />}
+                </div> */}
               </div>
             ))}
           </div>

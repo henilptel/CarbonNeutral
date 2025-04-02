@@ -24,15 +24,23 @@ const ResultsDisplay = ({ results }) => {
 
   const { totalEmissions, breakdown, mineName, mineLocation, period, date } = results;
 
-  // Prepare data for pie chart
-  const chartData = [
+  // Separate coal production from other emissions
+  const coalData = [
     { name: "Coal Production", value: breakdown.coalProduction },
-    { name: "Electricity Usage", value: breakdown.electricityUsage },
-    { name: "Fuel Consumption", value: breakdown.fuelConsumption },
-    { name: "Methane Emissions", value: breakdown.methaneEmissions },
+    { name: "Other Emissions", value: breakdown.electricityUsage + breakdown.fuelConsumption + breakdown.methaneEmissions }
   ];
 
-  const COLORS = ["#ef4444", "#3b82f6", "#eab308", "#22c55e"];
+  // Prepare data for other emissions chart
+  const otherEmissionsData = [
+    { name: "Electricity Usage", value: breakdown.electricityUsage },
+    { name: "Fuel Consumption", value: breakdown.fuelConsumption },
+    { name: "Methane Emissions", value: breakdown.methaneEmissions }
+  ];
+
+  const COLORS = {
+    main: ["#ef4444", "#64748b"],
+    other: ["#3b82f6", "#eab308", "#22c55e"]
+  };
 
   // Format date
   const formattedDate = new Date(date).toLocaleDateString("en-US", {
@@ -70,37 +78,61 @@ const ResultsDisplay = ({ results }) => {
         </Card>
       </div>
 
-      <div className="h-64">
-        <p className="text-sm font-medium mb-2">Emissions Breakdown</p>
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={chartData}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="value"
-              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-            >
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip 
-              formatter={(value) => [
-                `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })} tCO₂e`, 
-                "Emissions"
-              ]}
-              contentStyle={{ 
-                backgroundColor: "var(--background)", 
-                borderColor: "var(--border)" 
-              }}
-            />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
+      <div className="space-y-6">
+        {/* Main Coal Production Section */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Coal Production Emissions</p>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-center">
+                <p className="text-xl text-muted-foreground mb-1">Coal Production CO₂</p>
+                <p className="text-4xl font-bold text-red-500">
+                  {breakdown.coalProduction.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  <span className="text-base font-normal text-muted-foreground ml-1">tCO₂e</span>
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {((breakdown.coalProduction / totalEmissions) * 100).toFixed(1)}% of total emissions
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Other Emissions Section */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Other Emissions Breakdown</p>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={otherEmissionsData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                >
+                  {otherEmissionsData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS.other[index]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value) => [
+                    `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })} tCO₂e`, 
+                    "Emissions"
+                  ]}
+                  contentStyle={{ 
+                    backgroundColor: "var(--background)", 
+                    borderColor: "var(--border)" 
+                  }}
+                />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-2">
